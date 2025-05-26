@@ -2,26 +2,25 @@ import express from 'express';
 import cors from 'cors';
 import { v2 as cloudinary } from 'cloudinary';
 import dotenv from 'dotenv';
+import path from 'path';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 
-// Enable CORS for all routes
-app.use(cors());
-
-// Add headers middleware
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    next();
-});
+// Enable CORS for development
+const isDev = process.env.NODE_ENV !== 'production';
+if (isDev) {
+    app.use(cors({
+        origin: 'http://localhost:5173',
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization']
+    }));
+}
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -29,12 +28,13 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+// API routes
 app.get('/api/images/:folder', async (req, res) => {
     try {
         const result = await cloudinary.search
             .expression(`folder:${req.params.folder}/*`)
             .sort_by('public_id', 'desc')
-            .max_results(30)
+            .max_results(500)
             .execute();
         res.json(result.resources);
     } catch (error) {
@@ -43,7 +43,20 @@ app.get('/api/images/:folder', async (req, res) => {
     }
 });
 
+// Serve static files in production
+if (!isDev) {
+    app.use(express.static(path.join(__dirname, 'dist')));
+
+    // Handle client-side routing
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    });
+}
+
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running in ${isDev ? 'development' : 'production'} mode on port ${PORT}`);
+}).on('error', (error) => {
+    console.error('Error starting server:', error);
+    process.exit(1);
 });
