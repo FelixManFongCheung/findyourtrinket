@@ -6,6 +6,7 @@ let imageData = new Map(); // Stores all image data
 
 document.querySelector('#app').innerHTML = `
 <div class="flex justify-center items-center w-screen h-screen">
+
     <div id="image-container" class="flex flex-wrap">
     </div>
 </div>
@@ -13,15 +14,16 @@ document.querySelector('#app').innerHTML = `
 
 async function loadImages() {
   try {
-    const images = await getImagesFromFolder('Italia');
+    const categorizedImages = await getImagesFromFolder('Italia');
 
-    // Store images in Map
-    for (const image of images) {
-      imageData.set(image.public_id, {
+    // Convert the categorizedImages object into the format your code expects
+    imageData = Object.entries(categorizedImages).reduce((acc, [folder, images]) => {
+      acc[folder] = images.map(image => ({
         url: image.secure_url,
         filename: image.display_name,
-      });
-    }
+      }));
+      return acc;
+    }, {});
 
     // Extract colors and sort images
     await extractAndSortColors();
@@ -32,7 +34,8 @@ async function loadImages() {
 
 async function extractAndSortColors() {
   try {
-    const colorPromises = Array.from(imageData.entries()).map(async ([id, data]) => {
+    console.log(imageData);
+    const colorPromises = Array.from(imageData.values()).map(async ([id, data]) => {
       try {
         const palette = await Vibrant.from(data.url).getPalette();
         return {
@@ -48,7 +51,6 @@ async function extractAndSortColors() {
 
     const imageColors = (await Promise.all(colorPromises)).filter(Boolean);
     const sortedImages = sortByColorPalette(imageColors);
-    console.log(sortedImages[0]);
 
     // Create new Map with sorted images
     imageData = new Map(

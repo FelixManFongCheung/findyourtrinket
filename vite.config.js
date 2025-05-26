@@ -12,5 +12,14 @@ export default defineConfig({
                 changeOrigin: true
             }
         }
+    },
+    publicDir: 'archives',
+    build: {
+        assetsInlineLimit: 0,
+        rollupOptions: {
+            output: {
+                manualChunks: undefined
+            }
+        }
     }
 })
