@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btn.id === 'all') {
         btn.innerHTML = `
           <div class="w-full h-full group-hover:backdrop-blur-md flex items-center justify-center">
-            ${activeButton !== 'all' ? '<span class="text-black text-2xl font-bold">ALL</span>' : ''}
+            ${activeButton !== 'all' ? '<span class="text-black opacity-50 text-8xl font-semibold font-inter">All</span>' : ''}
           </div>
         `;
       } else {
