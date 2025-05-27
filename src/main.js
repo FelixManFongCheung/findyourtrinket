@@ -3,10 +3,41 @@ import { getImagesFromFolder } from './image';
 import { Vibrant } from "node-vibrant/browser";
 
 let imageData = new Map(); // Stores all image data
+let colorFilter = [];
+let originalImageData = null; // Store original image data
 
 document.querySelector('#app').innerHTML = `
 <div class="flex justify-center items-center w-screen h-screen">
-
+    <div class="absolute top-0 left-0 w-full h-full z-10">
+      <div id="color-buttons-container" class="h-full w-full grid grid-cols-3 grid-rows-3">
+        <button id="red-btn" class="cursor-pointer w-full h-full opacity-0 backdrop-filter backdrop-blur-sm hover:opacity-40 transition-all duration-300 ease-in-out group">
+          <div class="w-full h-full group-hover:backdrop-blur-md flex items-center justify-center"></div>
+        </button>
+        <button id="blue-btn" class="cursor-pointer w-full h-full opacity-0 backdrop-filter backdrop-blur-sm hover:opacity-40 transition-all duration-300 ease-in-out group">
+          <div class="w-full h-full group-hover:backdrop-blur-md flex items-center justify-center"></div>
+        </button>
+        <button id="green-btn" class="cursor-pointer w-full h-full opacity-0 backdrop-filter backdrop-blur-sm hover:opacity-40 transition-all duration-300 ease-in-out group">
+          <div class="w-full h-full group-hover:backdrop-blur-md flex items-center justify-center"></div>
+        </button>
+        <button id="yellow-btn" class="cursor-pointer w-full h-full opacity-0 backdrop-filter backdrop-blur-sm hover:opacity-40 transition-all duration-300 ease-in-out group">
+          <div class="w-full h-full group-hover:backdrop-blur-md flex items-center justify-center"></div>
+        </button>
+        <button id="all" class="cursor-pointer w-full h-full opacity-0 backdrop-filter backdrop-blur-sm hover:opacity-40 transition-all duration-300 ease-in-out group">
+          <div class="w-full h-full group-hover:backdrop-blur-md flex items-center justify-center">
+            <!-- Text will be dynamically inserted here -->
+          </div>
+        </button>
+        <button id="purple-btn" class="cursor-pointer w-full h-full opacity-0 backdrop-filter backdrop-blur-sm hover:opacity-40 transition-all duration-300 ease-in-out group">
+          <div class="w-full h-full group-hover:backdrop-blur-md flex items-center justify-center"></div>
+        </button>
+        <button id="orange-btn" class="cursor-pointer w-full h-full opacity-0 backdrop-filter backdrop-blur-sm hover:opacity-40 transition-all duration-300 ease-in-out group">
+          <div class="w-full h-full group-hover:backdrop-blur-md flex items-center justify-center"></div>
+        </button>
+        <button id="cyan-btn" class="cursor-pointer w-full h-full opacity-0 backdrop-filter backdrop-blur-sm hover:opacity-40 transition-all duration-300 ease-in-out group">
+          <div class="w-full h-full group-hover:backdrop-blur-md flex items-center justify-center"></div>
+        </button>
+      </div>
+    </div>
     <div id="image-container" class="flex flex-wrap">
     </div>
 </div>
@@ -38,8 +69,20 @@ async function extractAndSortColors() {
       images.map(async (imageData) => {
         try {
           const palette = await Vibrant.from(imageData.url).getPalette();
+          const hsl = palette.Vibrant?.hsl || [0, 0, 0];
+
+          // Normalize hue to 0-360 range and debug
+          const normalizedHue = hsl[0] * 360; // Convert from 0-1 to 0-360
+
+          // Determine the predominant color name based on normalized HSL
+          const predominantColor = getColorName(normalizedHue);
+
           return {
-            data: imageData,
+            data: {
+              ...imageData,
+              predominantColor,
+              hsl // store original HSL for debugging
+            },
             colors: palette
           };
         } catch (err) {
@@ -52,16 +95,43 @@ async function extractAndSortColors() {
     const imageColors = (await Promise.all(colorPromises)).filter(Boolean);
     const sortedImages = sortByColorPalette(imageColors);
 
-    // Store sorted images back in the structure
+    // Store sorted images and keep a copy of original data
     imageData = {
       Italia: sortedImages.map(({ data }) => data)
     };
+    originalImageData = { ...imageData }; // Keep a copy of all images
 
     renderImages();
   } catch (error) {
     console.error('Error sorting by color:', error);
-    renderImages(); // Fallback to unsorted render
+    renderImages();
   }
+}
+
+// Helper function to convert HSL hue to color name
+function getColorName(hue) {
+  // Hue is in degrees (0-360)
+  let color;
+  if (hue === undefined) {
+    color = 'grey';
+  } else {
+    // Make sure hue is within 0-360 range
+    hue = ((hue % 360) + 360) % 360;
+
+    if (hue >= 0 && hue < 30) color = 'red';
+    else if (hue >= 30 && hue < 60) color = 'orange';
+    else if (hue >= 60 && hue < 90) color = 'yellow';
+    else if (hue >= 90 && hue < 150) color = 'green';
+    else if (hue >= 150 && hue < 210) color = 'cyan';
+    else if (hue >= 210 && hue < 270) color = 'blue';
+    else if (hue >= 270 && hue < 330) color = 'purple';
+    else color = 'red';
+  }
+
+  if (!colorFilter.includes(color)) {
+    colorFilter.push(color);
+  }
+  return color;
 }
 
 function sortByColorPalette(imageColors) {
@@ -202,3 +272,51 @@ if (document.readyState === 'loading') {
 } else {
   loadImages();
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const buttons = document.querySelectorAll('#color-buttons-container button');
+
+  // Function to update button states
+  const updateButtonStates = (activeButton) => {
+    buttons.forEach(btn => {
+      if (btn.id === 'all') {
+        btn.innerHTML = `
+          <div class="w-full h-full group-hover:backdrop-blur-md flex items-center justify-center">
+            ${activeButton !== 'all' ? '<span class="text-black text-2xl font-bold">ALL</span>' : ''}
+          </div>
+        `;
+      } else {
+        btn.disabled = (activeButton !== 'all');
+        btn.style.cursor = btn.disabled ? 'not-allowed' : 'pointer';
+        btn.innerHTML = `
+          <div class="w-full h-full group-hover:backdrop-blur-md flex items-center justify-center"></div>
+        `;
+      }
+    });
+  };
+
+  buttons.forEach(button => {
+    button.addEventListener('click', () => {
+      const color = button.id.replace('-btn', '');
+
+      if (color === 'all') {
+        // Reset to original data
+        imageData = { ...originalImageData };
+        updateButtonStates('all');
+      } else {
+        // Filter by color
+        const filteredImageData = {};
+        Object.entries(originalImageData).forEach(([category, images]) => {
+          filteredImageData[category] = images.filter(image => image.predominantColor === color);
+        });
+        imageData = filteredImageData;
+        updateButtonStates(button.id);
+      }
+
+      renderImages();
+    });
+  });
+
+  // Initialize button states
+  updateButtonStates('all');
+});
