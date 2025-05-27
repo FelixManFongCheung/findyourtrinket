@@ -257,7 +257,7 @@ function renderImages() {
         imageWrapper.style.opacity = '1';
       });
 
-      renderTime += 50;
+      renderTime += 30;
     });
   });
 }
