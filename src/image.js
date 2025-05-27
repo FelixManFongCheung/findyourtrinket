@@ -1,12 +1,12 @@
 // This uses Vite's glob import feature to load all images
-const imageModules = import.meta.glob('/archives/**/*.{jpg,jpeg,png,gif,webp}', {
+const imageModules = import.meta.glob('../archives/**/*.{jpg,jpeg,png,gif,webp}', {
     eager: true,
-    as: 'url'
+    query: '?url',
+    import: 'default'
 });
 
 export async function getImagesFromFolder(folderName) {
     const categorizedImages = {};
-
     // Convert the folder name to lowercase for case-insensitive matching
     const lowerFolderName = folderName.toLowerCase();
 
